@@ -1,13 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration status="INFO" monitorInterval="300">
+
+    <!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+    <!-- 定义通用的属性 -->
+    <Properties>
+        <!-- 这里的logs为项目根目录下的logs文件夹 -->
+        <Property name="log_path">logs</Property>
+        <!-- 定义统一的日志输出格式 -->
+        <Property name="log_pattern">[%-5p] &lt;%d{yyyy-MM-dd HH:mm:ss,sss}&gt; at [%C.%M] | click goto-> (%F:%L) - %m%n</Property>
+        <!-- 高亮控制台输出  -->
+        <Property name="log_pattern_highlight">%highlight{${log_pattern}}{FATAL=Bright Red, ERROR=Magenta, WARN=Cyan,
+            INFO=Green, DEBUG=Yellow, TRACE=Bright Blue}
+        </Property>
+    </Properties>
+
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
+
+        <!--文件会打印出所有信息，这个log每次运行程序会自动清空，由append属性决定，这个也挺有用的，适合临时测试用-->
+        <File name="log" fileName="${log_path}/test.log" append="false">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
+        </File>
+
+        <!-- 这个会打印出所有的info及以下级别的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
+        <!--<RollingFile name="info-log" fileName="logs/info.log" filePattern="logs/$${date:yyyy-MM}/info-%d{yyyy-MM-dd}-%i.log">-->
+        <!--&lt;!&ndash;控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）&ndash;&gt;-->
+        <!--<ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>-->
+        <!--<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] [%p] - %l - %m%n"/>-->
+        <!--<Policies>-->
+        <!--<TimeBasedTriggeringPolicy/>-->
+        <!--<SizeBasedTriggeringPolicy size="512 MB"/>-->
+        <!--</Policies>-->
+        <!--</RollingFile>-->
+
+        <!--error-->
+        <RollingFile name="error" fileName="${log_path}/error.log" filePattern="${log_path}/error-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%5p %d{yyyy-MM-dd HH:mm:ss} %c %m %n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="1024 MB"/>
+            </Policies>
+            <!-- DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件，这里设置了30 -->
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!--service-->
+        <RollingFile name="service" fileName="${log_path}/service.log" filePattern="${log_path}/service-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%5p %d{yyyy-MM-dd HH:mm:ss} %c %m %n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="1024 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!--request-->
+        <RollingFile name="request" fileName="${log_path}/request.log" filePattern="${log_path}/request-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%5p %d{yyyy-MM-dd HH:mm:ss} %c %m %n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="1024 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <Async name="asyncRequest">
+            <AppenderRef ref="request"/>
+        </Async>
     </Appenders>
+
     <Loggers>
-        <Root level="DEBUG">
-            <AppenderRef ref="Console"/>
-        </Root>
+        <!--过滤掉spring和mybatis的一些无用的DEBUG信息-->
+        <logger name="org.springframework" level="info"/>
+
+        <Logger name="service" level="info" additivity="false">
+            <AppenderRef ref="service"/>
+        </Logger>
+
+        <Logger name="controller" level="info" additivity="false">
+            <AppenderRef ref="asyncRequest"/>
+        </Logger>
+
+        <Logger name="error" level="error" additivity="false">
+            <AppenderRef ref="error"/>
+        </Logger>
+
+        <root level="info">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="error"/>
+            <appender-ref ref="log"/>
+        </root>
     </Loggers>
+
 </Configuration>
